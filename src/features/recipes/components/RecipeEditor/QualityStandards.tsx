@@ -11,7 +11,8 @@ import {
   Scale,
   Utensils,
   Clock,
-  X
+  X,
+  Wind,
 } from 'lucide-react';
 import type { Recipe, RecipeQualityStandards } from '../../types/recipe';
 import { supabase } from '@/lib/supabase';
