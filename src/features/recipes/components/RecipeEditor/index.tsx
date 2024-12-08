@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { Save, X, AlertTriangle } from 'lucide-react';
 import { useRecipeStore } from '../../stores/recipeStore';
-import { RecipeInformation } from './RecipeInformation';
+import { BasicInformation } from './BasicInformation';
 import { ProductionSpecs } from './ProductionSpecs';
 import { InstructionEditor } from './InstructionEditor';
 import { StationEquipment } from './StationEquipment';
-import { StorageProtocols } from './StorageProtocols/index';
+import { StorageProtocols } from './StorageProtocols';
 import { QualityStandards } from './QualityStandards';
 import { AllergenControl } from './AllergenControl';
 import { MediaManager } from './MediaManager';
@@ -120,7 +120,7 @@ export const RecipeEditorModal: React.FC<RecipeEditorModalProps> = ({
         {/* Tab Content */}
         <div className="p-6">
           {activeTab === 'recipe' && (
-            <RecipeInformation
+            <BasicInformation
               recipe={recipe}
               onChange={handleChange}
             />
