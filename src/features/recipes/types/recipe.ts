@@ -5,19 +5,28 @@ export interface Recipe {
   type: 'prepared' | 'final';
   name: string;
   description: string;
-  majorGroup?: string;
-  category?: string;
-  subCategory?: string;
+  miseEnPlaceCategory?: string;
   station: string;
   storage?: {
     location?: string;
     container?: string;
     containerType?: string;
-    shelfLife?: string;
+    labelImageUrl?: string;
+    temperature?: {
+      value: number;
+      unit: 'F' | 'C';
+      tolerance: number;
+    };
+    shelfLife?: {
+      value: number;
+      unit: 'hours' | 'days' | 'weeks';
+    };
     specialInstructions?: string[];
   };
   prepTime: number;
   cookTime: number;
+  restTime?: number;
+  totalTime: number;
   recipeUnitRatio: string;
   unitType: string;
   yield: {
