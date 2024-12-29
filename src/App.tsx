@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { MainLayout, AuthLayout } from '@/shared/layouts';
 import { SignIn } from '@/features/auth/components/SignIn';
@@ -9,10 +9,65 @@ import { AdminRoutes } from '@/features/admin/routes';
 import { KitchenRoutes } from '@/features/kitchen/routes';
 import { LoadingLogo } from '@/features/shared/components';
 import { useAuthStore } from '@/stores/authStore';
+import { useNextAuthStore } from '@/lib/auth/next/auth-store';
+import { authService } from '@/lib/auth/services/auth-service';
+import { verifyAuthStores, syncAuthStores } from '@/lib/auth/bridge/auth-bridge';
 import { Toaster } from 'react-hot-toast';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 function App() {
-  const { isLoading } = useAuthStore();
+  const { isLoading: legacyLoading } = useAuthStore();
+  const { isLoading: nextLoading } = useNextAuthStore();
+  const isLoading = legacyLoading || nextLoading;
+
+  // Initialize auth system
+  useEffect(() => {
+    const initAuth = async () => {
+      try {
+        await authService.initialize();
+        
+        // Verify store consistency after initialization
+        if (!verifyAuthStores()) {
+          console.warn('Auth stores inconsistent after initialization');
+          await syncAuthStores();
+        }
+
+        // Set up health check interval
+        const healthCheckInterval = setInterval(async () => {
+          const health = await authService.checkAuthHealth();
+          if (health.status === 'error') {
+            console.error('Auth health check failed:', health.error);
+            clearInterval(healthCheckInterval);
+            await authService.signOut();
+            window.location.href = ROUTES.AUTH.SIGN_IN;
+          }
+        }, 5 * 60 * 1000); // Check every 5 minutes
+
+        return () => clearInterval(healthCheckInterval);
+      } catch (error) {
+        console.error('Auth initialization failed:', error);
+        // Reset to a safe state
+        await authService.signOut();
+        window.location.href = ROUTES.AUTH.SIGN_IN;
+      }
+    };
+
+    initAuth();
+  }, []);
+
+  // Handle auth errors
+  const handleError = async (error: Error) => {
+    console.error('Application error:', error);
+    if (error.message.includes('auth') || error.message.includes('fetch')) {
+      try {
+        await authService.signOut();
+        window.location.href = ROUTES.AUTH.SIGN_IN;
+      } catch (e) {
+        console.error('Error handler failed:', e);
+        window.location.reload();
+      }
+    }
+  };
 
   if (isLoading) {
     return (
@@ -23,7 +78,7 @@ function App() {
   }
 
   return (
-    <>
+    <ErrorBoundary onError={handleError}>
       <Routes>
         {/* Auth Routes */}
         <Route path="/auth/*" element={<AuthLayout />}>
@@ -55,7 +110,7 @@ function App() {
           duration: 3000,
         }}
       />
-    </>
+    </ErrorBoundary>
   );
 }
 
