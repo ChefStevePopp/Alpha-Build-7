@@ -262,30 +262,38 @@ export const FoodRelationshipsManager: React.FC = () => {
     <div className="space-y-6">
       <DiagnosticText />
 
-      <header className="flex justify-between items-center mb-6">
-        <div>
-          <h3 className="text-lg font-medium text-white">Food Relationships</h3>
-          <p className="text-gray-400 mt-1">Manage food categories and relationships</p>
-        </div>
-        <div className="flex gap-4">
-          <button
-            onClick={handleDownloadTemplate}
-            className="btn-ghost text-blue-400 hover:text-blue-300"
-          >
-            <Download className="w-5 h-5 mr-2" />
-            Download Template
-          </button>
-          <button
-            onClick={() => setIsImportModalOpen(true)}
-            className="btn-primary"
-          >
-            <Upload className="w-5 h-5 mr-2" />
-            Import Excel
-          </button>
-        </div>
-      </header>
+      <header className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+  <div>
+    <h1 className="text-3xl font-bold text-white mb-2">Food Relationships</h1>
+    <p className="text-gray-400 mt-1">Taxonomy and Relationships of Food Products</p>
+    <p className="text-gray-500 mt-2 text-sm">
+      Organize and manage your restaurant's consumable products through a clear hierarchy of 
+      Major Groups, Categories, and Sub-Categories. This system streamlines inventory, cost control, 
+      and operational flow by defining relationships between raw ingredients, prepared components, 
+      and final goods.
+    </p>
+  </div>
+  <div className="flex gap-4 lg:mt-0 mt-4">
+    <button
+      onClick={handleDownloadTemplate}
+      className="btn-ghost text-blue-400 hover:text-blue-300"
+    >
+      <Download className="w-5 h-5 mr-2" />
+      Download Template
+    </button>
+    <button
+      onClick={() => setIsImportModalOpen(true)}
+      className="btn-primary"
+    >
+      <Upload className="w-5 h-5 mr-2" />
+      Import Excel
+    </button>
+  </div>
+</header>
 
-      <div className="grid grid-cols-3 gap-6">
+
+
+<div className="grid grid-cols-3 gap-6 card p-6">
         {/* Major Groups */}
         <div className="bg-gray-800 rounded-xl p-4">
           <div className="flex items-center justify-between mb-4">
