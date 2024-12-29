@@ -18,11 +18,11 @@ return (
       src/features/admin/components/sections/OperationsManager/FoodRelationshipsManager/index.tsx
     </div>
 
-    <div className="flex justify-between items-center mb-6">
-      <div>
-        <h3 className="text-lg font-medium text-white">Food Relationships</h3>
-        <p className="text-gray-400 mt-1">Manage food categories and relationships</p>
-      </div>
+    <header className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold text-white mb-4">Operations Manager</h1>
+          <p className="text-gray-400">Configure system-wide lookup values and master lists</p>
+        </div>
       <ImportExportButtons />
     </div>
 
