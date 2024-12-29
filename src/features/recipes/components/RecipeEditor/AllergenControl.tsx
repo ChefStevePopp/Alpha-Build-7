@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { AlertTriangle, Info, Shield } from 'lucide-react';
 import { AllergenSelector } from '@/features/allergens/components/AllergenSelector';
 import { AllergenBadge } from '@/features/allergens/components/AllergenBadge';
@@ -8,56 +8,59 @@ import type { AllergenType } from '@/features/allergens/types';
 interface AllergenControlProps {
   recipe: Recipe;
   onChange: (updates: Partial<Recipe>) => void;
+  masterIngredients?: any[]; // Type this properly based on your master ingredients structure
 }
 
 export const AllergenControl: React.FC<AllergenControlProps> = ({
   recipe,
-  onChange
+  onChange,
+  masterIngredients = []
 }) => {
+  // Auto-populate allergens from ingredients
+  useEffect(() => {
+    if (recipe.ingredients?.length) {
+      const allAllergens = new Set<string>();
+
+      recipe.ingredients.forEach(ingredient => {
+        if (ingredient.master_ingredient_id) {
+          const masterIngredient = masterIngredients.find(
+            mi => mi.id === ingredient.master_ingredient_id
+          );
+
+          if (masterIngredient?.allergens) {
+            masterIngredient.allergens.contains?.forEach(a => allAllergens.add(a));
+            masterIngredient.allergens.mayContain?.forEach(a => allAllergens.add(a));
+            masterIngredient.allergens.crossContactRisk?.forEach(a => allAllergens.add(a));
+          }
+        }
+      });
+
+      onChange({
+        allergenInfo: {
+          ...recipe.allergenInfo,
+          contains: Array.from(allAllergens)
+        }
+      });
+    }
+  }, [recipe.ingredients, masterIngredients]);
+
   const handleAllergenChange = (allergenKey: string, isContained: boolean) => {
     const allergen = allergenKey as AllergenType;
     const contains = new Set(recipe.allergenInfo.contains);
     const mayContain = new Set(recipe.allergenInfo.mayContain);
-    const crossContactRisk = new Set(recipe.allergenInfo.crossContactRisk);
 
     if (isContained) {
       contains.add(allergen);
       mayContain.delete(allergen);
-      crossContactRisk.delete(allergen);
     } else {
       contains.delete(allergen);
     }
 
     onChange({
       allergenInfo: {
+        ...recipe.allergenInfo,
         contains: Array.from(contains),
-        mayContain: Array.from(mayContain),
-        crossContactRisk: Array.from(crossContactRisk)
-      }
-    });
-  };
-
-  const handleCrossContactChange = (allergenKey: string, isAtRisk: boolean) => {
-    const allergen = allergenKey as AllergenType;
-    const contains = new Set(recipe.allergenInfo.contains);
-    const mayContain = new Set(recipe.allergenInfo.mayContain);
-    const crossContactRisk = new Set(recipe.allergenInfo.crossContactRisk);
-
-    if (isAtRisk) {
-      crossContactRisk.add(allergen);
-      if (!contains.has(allergen)) {
-        mayContain.add(allergen);
-      }
-    } else {
-      crossContactRisk.delete(allergen);
-      mayContain.delete(allergen);
-    }
-
-    onChange({
-      allergenInfo: {
-        contains: Array.from(contains),
-        mayContain: Array.from(mayContain),
-        crossContactRisk: Array.from(crossContactRisk)
+        mayContain: Array.from(mayContain)
       }
     });
   };
@@ -96,15 +99,22 @@ export const AllergenControl: React.FC<AllergenControlProps> = ({
       <div className="space-y-4">
         <h4 className="text-sm font-medium text-white flex items-center gap-2">
           <AlertTriangle className="w-4 h-4 text-yellow-400" />
-          Cross-Contact Risks
+          Cross-Contact Notes
         </h4>
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-          {recipe.allergenInfo.crossContactRisk.map((allergen) => (
-            <div key={allergen} className="flex items-center gap-2">
-              <AllergenBadge type={allergen} showLabel />
-            </div>
-          ))}
-        </div>
+        <textarea
+          value={recipe.allergenInfo.crossContactRisk.join('\n')}
+          onChange={(e) => {
+            const notes = e.target.value.split('\n').filter(note => note.trim());
+            onChange({
+              allergenInfo: {
+                ...recipe.allergenInfo,
+                crossContactRisk: notes
+              }
+            });
+          }}
+          className="input w-full h-32"
+          placeholder="Enter cross-contact risk notes here..."
+        />
       </div>
 
       {/* Allergen Selector */}
@@ -135,41 +145,12 @@ export const AllergenControl: React.FC<AllergenControlProps> = ({
             allergenPork: recipe.allergenInfo.contains.includes('pork')
           }}
           onChange={(updates) => {
-            // Convert allergen updates to recipe allergen format
             Object.entries(updates).forEach(([key, value]) => {
               const allergen = key.replace('allergen', '').toLowerCase() as AllergenType;
               handleAllergenChange(allergen, value as boolean);
             });
           }}
         />
-      </div>
-
-      {/* Cross-Contact Management */}
-      <div className="bg-yellow-500/10 rounded-lg p-4">
-        <div className="flex gap-3">
-          <AlertTriangle className="w-5 h-5 text-yellow-400 flex-shrink-0" />
-          <div>
-            <p className="text-yellow-400 font-medium">Cross-Contact Prevention</p>
-            <p className="text-sm text-gray-300 mt-1">
-              Identify potential cross-contact risks during preparation and storage.
-              Consider shared equipment, storage areas, and preparation surfaces.
-            </p>
-            <div className="mt-4 space-y-2">
-              {recipe.allergenInfo.crossContactRisk.length > 0 ? (
-                <div className="flex flex-wrap gap-2">
-                  {recipe.allergenInfo.crossContactRisk.map((allergen) => (
-                    <div key={allergen} className="flex items-center gap-2 bg-gray-800 rounded-lg px-3 py-2">
-                      <AllergenBadge type={allergen} />
-                      <span className="text-sm text-gray-300">{allergen}</span>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-sm text-gray-400">No cross-contact risks identified</p>
-              )}
-            </div>
-          </div>
-        </div>
       </div>
 
       {/* Allergen Warnings */}
@@ -186,17 +167,13 @@ export const AllergenControl: React.FC<AllergenControlProps> = ({
                     {recipe.allergenInfo.contains.join(', ')}
                   </p>
                 )}
-                {recipe.allergenInfo.mayContain.length > 0 && (
-                  <p className="text-sm text-gray-300">
-                    <span className="font-medium">May Contain:</span>{' '}
-                    {recipe.allergenInfo.mayContain.join(', ')}
-                  </p>
-                )}
                 {recipe.allergenInfo.crossContactRisk.length > 0 && (
-                  <p className="text-sm text-gray-300">
-                    <span className="font-medium">Cross-Contact Risk:</span>{' '}
-                    {recipe.allergenInfo.crossContactRisk.join(', ')}
-                  </p>
+                  <div className="text-sm text-gray-300">
+                    <span className="font-medium">Cross-Contact Risk Notes:</span>
+                    {recipe.allergenInfo.crossContactRisk.map((note, index) => (
+                      <p key={index} className="ml-4">• {note}</p>
+                    ))}
+                  </div>
                 )}
               </div>
             </div>
