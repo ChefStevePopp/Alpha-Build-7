@@ -1,67 +1,58 @@
-import React, { useState, useEffect } from 'react';
-import { X, Search, Shield, RefreshCw } from 'lucide-react';
+import React, { useState, useCallback } from 'react';
+import { X, Search, UserPlus, RefreshCw } from 'lucide-react';
 import { useTeamStore } from '@/stores/teamStore';
-import { type KitchenRole } from '@/config/kitchen-roles';
+import type { KitchenRole } from '@/config/kitchen-roles';
+import type { TeamMemberData } from '@/features/team/types';
 import toast from 'react-hot-toast';
 
 interface AssignMembersModalProps {
   isOpen: boolean;
   onClose: () => void;
   role: KitchenRole;
+  onAssign: () => Promise<void>;
 }
 
 export const AssignMembersModal: React.FC<AssignMembersModalProps> = ({
   isOpen,
   onClose,
-  role
+  role,
+  onAssign
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
-  const { members, isLoading, error, fetchTeamMembers, updateMember } = useTeamStore();
-  const [isAssigning, setIsAssigning] = useState(false);
+  const [assigningMemberId, setAssigningMemberId] = useState<string | null>(null);
+  const { members, updateMember } = useTeamStore();
 
-  // Fetch team members when modal opens
-  useEffect(() => {
-    if (isOpen) {
-      fetchTeamMembers().catch(error => {
-        console.error('Error fetching team members:', error);
-        toast.error('Failed to load team members');
-      });
-    }
-  }, [isOpen, fetchTeamMembers]);
+  // Filter out members who already have this role
+  const availableMembers = members.filter(m => m.kitchenRole !== role);
 
-  // Filter members based on search and current role
-  const filteredMembers = members.filter(member => {
-    const matchesSearch = (
-      member.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      member.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      member.email.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-    // Don't show members already assigned to this role
-    const hasRole = member.kitchenRole === role;
-    return matchesSearch && !hasRole;
-  });
+  // Filter members based on search
+  const filteredMembers = availableMembers.filter(member => 
+    `${member.firstName} ${member.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    member.email.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
-  const handleAssign = async (memberId: string) => {
-    setIsAssigning(true);
+  const handleAssign = useCallback(async (member: TeamMemberData) => {
+    setAssigningMemberId(member.id);
     try {
-      await updateMember(memberId, { kitchenRole: role });
-      // Refresh team members to update UI
-      await fetchTeamMembers();
-      toast.success('Role assigned successfully');
+      await updateMember(member.id, { kitchenRole: role });
+      await onAssign();
+      toast.success(`${member.firstName} ${member.lastName} assigned as ${role}`);
+      onClose();
     } catch (error) {
       console.error('Error assigning role:', error);
       toast.error('Failed to assign role');
     } finally {
-      setIsAssigning(false);
+      setAssigningMemberId(null);
     }
-  };
+  }, [role, updateMember, onAssign, onClose]);
 
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-gray-900 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-        <div className="sticky top-0 bg-gray-900 p-6 border-b border-gray-800 flex justify-between items-center">
+      <div className="bg-gray-900 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+        {/* Header */}
+        <div className="p-6 border-b border-gray-800 flex justify-between items-center">
           <h2 className="text-2xl font-bold text-white">Assign Team Members</h2>
           <button 
             onClick={onClose}
@@ -71,7 +62,8 @@ export const AssignMembersModal: React.FC<AssignMembersModalProps> = ({
           </button>
         </div>
 
-        <div className="p-6 space-y-6">
+        {/* Content */}
+        <div className="p-6 space-y-6 flex-1 overflow-auto">
           {/* Search */}
           <div className="relative">
             <Search className="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
@@ -81,42 +73,31 @@ export const AssignMembersModal: React.FC<AssignMembersModalProps> = ({
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="input w-full pl-10"
+              autoFocus
             />
           </div>
 
           {/* Members List */}
           <div className="space-y-2">
-            {isLoading ? (
-              <div className="text-center py-8">
-                <RefreshCw className="w-8 h-8 text-primary-400 animate-spin mx-auto mb-2" />
-                <p className="text-gray-400">Loading team members...</p>
+            {filteredMembers.length === 0 ? (
+              <div className="text-center py-8 text-gray-400">
+                {searchTerm ? (
+                  <p>No team members match your search</p>
+                ) : (
+                  <p>No team members available to assign</p>
+                )}
               </div>
-            ) : error ? (
-              <div className="text-center text-red-400 py-8">
-                <p>{error}</p>
-                <button
-                  onClick={() => fetchTeamMembers()}
-                  className="btn-ghost mt-4"
-                >
-                  <RefreshCw className="w-4 h-4 mr-2" />
-                  Retry
-                </button>
-              </div>
-            ) : filteredMembers.length === 0 ? (
-              <p className="text-center text-gray-400 py-4">
-                {searchTerm ? 'No matching team members found' : 'No team members available to assign'}
-              </p>
             ) : (
               filteredMembers.map((member) => (
                 <div
                   key={member.id}
-                  className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg hover:bg-gray-800/70 transition-colors"
+                  className="flex items-center justify-between p-4 bg-gray-800/50 rounded-lg hover:bg-gray-800/70 transition-colors"
                 >
                   <div className="flex items-center gap-3">
                     <img
                       src={member.avatar}
                       alt={`${member.firstName} ${member.lastName}`}
-                      className="w-10 h-10 rounded-lg"
+                      className="w-10 h-10 rounded-lg object-cover"
                     />
                     <div>
                       <p className="text-white font-medium">
@@ -126,12 +107,21 @@ export const AssignMembersModal: React.FC<AssignMembersModalProps> = ({
                     </div>
                   </div>
                   <button
-                    onClick={() => handleAssign(member.id)}
-                    disabled={isAssigning}
-                    className="btn-ghost text-primary-400 hover:text-primary-300"
+                    onClick={() => handleAssign(member)}
+                    disabled={assigningMemberId === member.id}
+                    className="btn-ghost text-sm text-primary-400 hover:text-primary-300 disabled:opacity-50"
                   >
-                    <Shield className="w-4 h-4 mr-2" />
-                    Assign Role
+                    {assigningMemberId === member.id ? (
+                      <>
+                        <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                        Assigning...
+                      </>
+                    ) : (
+                      <>
+                        <UserPlus className="w-4 h-4 mr-2" />
+                        Assign Role
+                      </>
+                    )}
                   </button>
                 </div>
               ))
