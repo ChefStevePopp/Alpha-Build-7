@@ -5,8 +5,11 @@ import { DiagnosticsPanel } from './DiagnosticsPanel';
 import { DatabasePanel } from './DatabasePanel';
 import { SystemInfoPanel } from './SystemInfoPanel';
 import { ThemeExport } from './ThemeExport';
+import { CodeBaseCombiner } from './CodeBaseCombiner';
 
-export const DevManagement: React.FC = () => {
+interface DevManagementProps {}
+
+export const DevManagement: React.FC<DevManagementProps> = () => {
   const { isDev } = useDevAccess();
 
   if (!isDev) {
@@ -41,8 +44,11 @@ export const DevManagement: React.FC = () => {
         <div className="space-y-6">
           <SystemInfoPanel />
           <ThemeExport />
+          <CodeBaseCombiner />
         </div>
       </div>
     </div>
   );
 };
+
+export default DevManagement;
