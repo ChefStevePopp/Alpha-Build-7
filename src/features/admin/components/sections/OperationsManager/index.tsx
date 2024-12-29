@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Ruler, Tags, Building2, Plus, AlertTriangle,
-  Archive, Scale, Store, FolderPlus
+  Archive, Scale, Store, FolderPlus, Printer
 } from 'lucide-react';
 import { useOperationsStore } from '@/stores/operationsStore';
 import { AddSubCategoryModal } from './AddSubCategoryModal';
@@ -61,8 +61,21 @@ const CATEGORY_GROUPS = [
       { id: 'pos_family_groups', label: 'POS Family Groups' },
       { id: 'vendors', label: 'Vendors' }
     ]
+  },
+  {
+    id: 'labels',
+    name: 'Labels & Printing',
+    icon: Printer,
+    color: 'purple',
+    description: 'Configure label templates and printer settings',
+    categories: [
+      { id: 'label_templates', label: 'Label Templates' },
+      { id: 'required_label_fields', label: 'Required Fields' },
+      { id: 'printer_settings', label: 'Printer Settings' }
+    ]
   }
 ] as const;
+
 
 export const OperationsManager: React.FC = () => {
   const [activeGroup, setActiveGroup] = useState<string>('measurements');
