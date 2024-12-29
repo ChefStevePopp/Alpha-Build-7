@@ -19,8 +19,8 @@ export const AdminSidebar: React.FC = () => {
             className="w-10 h-10 rounded-lg object-cover"
           />
           <div>
-            <h1 className="text-xl font-semibold text-white">KITCHEN AI</h1>
-            <h2 className="text-xs font-status text-primary-400">ADMIN</h2>
+            <h1 className="text-xl font-semibold text-white">JOSHi AI</h1>
+            <h2 className="text-xs font-status text-primary-400">Organization Settings</h2>
           </div>
         </div>
       </div>
