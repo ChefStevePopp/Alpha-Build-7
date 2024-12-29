@@ -1,261 +1,288 @@
-import React from 'react';
-import { Package, CircleDollarSign, Plus, Trash2 } from 'lucide-react';
-import type { Recipe } from '../../types/recipe';
-import { useMasterIngredientsStore } from '@/stores/masterIngredientsStore';
+import React, { useEffect } from 'react';
+import { Package } from 'lucide-react';
+import type { Recipe } from '../../../types/recipe';
+import { useFoodRelationshipsStore } from '@/stores/foodRelationshipsStore';
+import { useOperationsStore } from '@/stores/operationsStore';
+import toast from 'react-hot-toast';
 
-interface RecipeInformationProps {
+interface BasicInformationProps {
   recipe: Recipe;
   onChange: (updates: Partial<Recipe>) => void;
 }
 
-export const RecipeInformation: React.FC<RecipeInformationProps> = ({
+export const BasicInformation: React.FC<BasicInformationProps> = ({
   recipe,
-  onChange
+  onChange,
 }) => {
-  const { ingredients: masterIngredients } = useMasterIngredientsStore();
+  const {
+    groups,
+    categories,
+    subCategories,
+    fetchGroups,
+    fetchCategories,
+    fetchSubCategories,
+    isLoading,
+    error,
+  } = useFoodRelationshipsStore();
 
-  const handleIngredientChange = (index: number, field: string, value: string) => {
-    const newIngredients = [...recipe.ingredients];
-    const ingredient = newIngredients[index];
+  const { settings, fetchSettings } = useOperationsStore();
 
-    if (field === 'name') {
-      // Find the selected master ingredient
-      const masterIngredient = masterIngredients.find(item => item.id === value);
-      if (masterIngredient) {
-        // Update ingredient with master ingredient details
-        ingredient.name = value;
-        ingredient.unit = masterIngredient.recipe_unit_type || masterIngredient.unit_of_measure;
-        ingredient.cost = masterIngredient.cost_per_recipe_unit;
-      }
-    } else {
-      ingredient[field] = value;
-    }
+  // Fetch initial data
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        await Promise.all([fetchGroups(), fetchSettings()]);
 
-    onChange({ ingredients: newIngredients });
-  };
-
-  const addIngredient = () => {
-    onChange({
-      ingredients: [
-        ...recipe.ingredients,
-        {
-          id: `ing-${Date.now()}`,
-          type: 'raw',
-          name: '',
-          quantity: '',
-          unit: '',
-          notes: '',
-          cost: 0
+        // If we have a major group, fetch its categories
+        if (recipe.majorGroup) {
+          await fetchCategories(recipe.majorGroup);
         }
-      ]
+
+        // If we have a category, fetch its sub-categories
+        if (recipe.category) {
+          await fetchSubCategories(recipe.category);
+        }
+      } catch (err) {
+        console.error('Error loading food relationships:', err);
+        toast.error('Failed to load categories');
+      }
+    };
+
+    loadData();
+  }, [
+    fetchGroups,
+    fetchSettings,
+    fetchCategories,
+    fetchSubCategories,
+    recipe.majorGroup,
+    recipe.category,
+  ]);
+
+  // Fetch categories when major group changes
+  useEffect(() => {
+    if (recipe.majorGroup) {
+      fetchCategories(recipe.majorGroup);
+    }
+  }, [recipe.majorGroup, fetchCategories]);
+
+  // Fetch sub-categories when category changes
+  useEffect(() => {
+    if (recipe.category) {
+      fetchSubCategories(recipe.category);
+    }
+  }, [recipe.category, fetchSubCategories]);
+
+  const handleMajorGroupChange = async (groupId: string) => {
+    // Clear lower-level selections
+    onChange({
+      majorGroup: groupId || null,
+      category: null,
+      subCategory: null,
     });
+
+    // Fetch categories for new group if one is selected
+    if (groupId) {
+      await fetchCategories(groupId);
+    }
   };
 
-  const removeIngredient = (index: number) => {
+  const handleCategoryChange = async (categoryId: string) => {
+    // Clear sub-category selection
     onChange({
-      ingredients: recipe.ingredients.filter((_, i) => i !== index)
+      category: categoryId || null,
+      subCategory: null,
     });
+
+    // Fetch sub-categories for new category if one is selected
+    if (categoryId) {
+      await fetchSubCategories(categoryId);
+    }
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="text-gray-400">Loading categories...</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="text-red-400">
+          Error loading categories. Please try again.
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-8">
-      {/* Basic Information */}
-      <div className="space-y-4">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center">
-            <Package className="w-4 h-4 text-blue-400" />
-          </div>
-          <h3 className="text-lg font-medium text-white">Recipe Information</h3>
+    <div className="space-y-4">
+      <div className="flex items-center gap-3">
+        <div className="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center">
+          <Package className="w-4 h-4 text-blue-400" />
         </div>
-        
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-400 mb-1">
-              Recipe Name
-            </label>
+        <h3 className="text-lg font-medium text-white">Basic Information</h3>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-400 mb-1">
+            Recipe Name
+          </label>
+          <input
+            type="text"
+            value={recipe.name}
+            onChange={(e) => onChange({ name: e.target.value })}
+            className="input w-full"
+            placeholder="Enter recipe name"
+            required
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-400 mb-1">
+            Recipe Type
+          </label>
+          <select
+            value={recipe.type}
+            onChange={(e) =>
+              onChange({ type: e.target.value as 'prepared' | 'final' })
+            }
+            className="input w-full"
+            required
+          >
+            <option value="prepared">Prepared Item</option>
+            <option value="final">Final Plate</option>
+          </select>
+        </div>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-400 mb-1">
+          Description
+        </label>
+        <textarea
+          value={recipe.description}
+          onChange={(e) => onChange({ description: e.target.value })}
+          className="input w-full h-24"
+          placeholder="Enter recipe description"
+          required
+        />
+      </div>
+
+      <div className="grid grid-cols-3 gap-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-400 mb-1">
+            Major Group
+          </label>
+          <select
+            value={recipe.majorGroup || ''}
+            onChange={(e) => handleMajorGroupChange(e.target.value)}
+            className="input w-full"
+            required
+          >
+            <option value="">Select major group...</option>
+            {groups.map((group) => (
+              <option key={group.id} value={group.id}>
+                {group.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-400 mb-1">
+            Category
+          </label>
+          <select
+            value={recipe.category || ''}
+            onChange={(e) => handleCategoryChange(e.target.value)}
+            className="input w-full"
+            required
+            disabled={!recipe.majorGroup}
+          >
+            <option value="">Select category...</option>
+            {categories
+              .filter((cat) => cat.groupId === recipe.majorGroup)
+              .map((category) => (
+                <option key={category.id} value={category.id}>
+                  {category.name}
+                </option>
+              ))}
+          </select>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-400 mb-1">
+            Sub-Category
+          </label>
+          <select
+            value={recipe.subCategory || ''}
+            onChange={(e) => onChange({ subCategory: e.target.value })}
+            className="input w-full"
+            disabled={!recipe.category}
+          >
+            <option value="">Select sub-category...</option>
+            {subCategories
+              .filter((sub) => sub.categoryId === recipe.category)
+              .map((subCategory) => (
+                <option key={subCategory.id} value={subCategory.id}>
+                  {subCategory.name}
+                </option>
+              ))}
+          </select>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-400 mb-1">
+            Recipe Unit Ratio
+          </label>
+          <div className="flex gap-2">
             <input
               type="text"
-              value={recipe.name}
-              onChange={(e) => onChange({ name: e.target.value })}
-              className="input w-full"
-              placeholder="Enter recipe name"
+              value={recipe.recipeUnitRatio}
+              onChange={(e) => onChange({ recipeUnitRatio: e.target.value })}
+              className="input flex-1"
+              placeholder="e.g., 4 servings"
               required
             />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-400 mb-1">
-              Recipe Type
-            </label>
             <select
-              value={recipe.type}
-              onChange={(e) => onChange({ type: e.target.value as 'prepared' | 'final' })}
-              className="input w-full"
+              value={recipe.unitType}
+              onChange={(e) => onChange({ unitType: e.target.value })}
+              className="input w-32"
               required
             >
-              <option value="prepared">Prepared Item</option>
-              <option value="final">Final Plate</option>
+              <option value="servings">servings</option>
+              <option value="portions">portions</option>
+              <option value="pieces">pieces</option>
+              <option value="g">grams</option>
+              <option value="kg">kg</option>
+              <option value="ml">ml</option>
+              <option value="l">liters</option>
             </select>
           </div>
         </div>
 
         <div>
           <label className="block text-sm font-medium text-gray-400 mb-1">
-            Description
+            Station
           </label>
-          <textarea
-            value={recipe.description}
-            onChange={(e) => onChange({ description: e.target.value })}
-            className="input w-full h-24"
-            placeholder="Enter recipe description"
+          <select
+            value={recipe.station}
+            onChange={(e) => onChange({ station: e.target.value })}
+            className="input w-full"
             required
-          />
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-400 mb-1">
-              Recipe Unit Ratio
-            </label>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={recipe.recipeUnitRatio}
-                onChange={(e) => onChange({ recipeUnitRatio: e.target.value })}
-                className="input flex-1"
-                placeholder="e.g., 4 servings"
-                required
-              />
-              <select
-                value={recipe.unitType}
-                onChange={(e) => onChange({ unitType: e.target.value })}
-                className="input w-32"
-                required
-              >
-                <option value="servings">servings</option>
-                <option value="portions">portions</option>
-                <option value="pieces">pieces</option>
-                <option value="g">grams</option>
-                <option value="kg">kg</option>
-                <option value="ml">ml</option>
-                <option value="l">liters</option>
-              </select>
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-400 mb-1">
-              Station
-            </label>
-            <select
-              value={recipe.station}
-              onChange={(e) => onChange({ station: e.target.value })}
-              className="input w-full"
-              required
-            >
-              <option value="">Select station...</option>
-              <option value="grill">Grill</option>
-              <option value="saute">Sauté</option>
-              <option value="fry">Fry</option>
-              <option value="prep">Prep</option>
-              <option value="pantry">Pantry</option>
-              <option value="pizza">Pizza</option>
-              <option value="expo">Expo</option>
-            </select>
-          </div>
-        </div>
-      </div>
-
-      {/* Ingredients Section */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-emerald-500/20 flex items-center justify-center">
-              <CircleDollarSign className="w-4 h-4 text-emerald-400" />
-            </div>
-            <h3 className="text-lg font-medium text-white">Ingredients & Costing</h3>
-          </div>
-          <button
-            onClick={addIngredient}
-            className="btn-ghost text-sm"
           >
-            <Plus className="w-4 h-4 mr-2" />
-            Add Ingredient
-          </button>
-        </div>
-
-        <div className="space-y-4">
-          {recipe.ingredients.map((ingredient, index) => (
-            <div
-              key={ingredient.id}
-              className="grid grid-cols-6 gap-4 bg-gray-800/50 p-4 rounded-lg"
-            >
-              <div className="col-span-2">
-                <label className="block text-sm font-medium text-gray-400 mb-1">
-                  Ingredient
-                </label>
-                <select
-                  value={ingredient.name}
-                  onChange={(e) => handleIngredientChange(index, 'name', e.target.value)}
-                  className="input w-full"
-                  required
-                >
-                  <option value="">Select ingredient</option>
-                  {masterIngredients.map((item) => (
-                    <option key={item.id} value={item.id}>
-                      {item.product}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-400 mb-1">
-                  Quantity
-                </label>
-                <input
-                  type="text"
-                  value={ingredient.quantity}
-                  onChange={(e) => handleIngredientChange(index, 'quantity', e.target.value)}
-                  className="input w-full"
-                  required
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-400 mb-1">
-                  Unit
-                </label>
-                <input
-                  type="text"
-                  value={ingredient.unit}
-                  className="input w-full bg-gray-700"
-                  disabled
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-400 mb-1">
-                  Notes
-                </label>
-                <input
-                  type="text"
-                  value={ingredient.notes || ''}
-                  onChange={(e) => handleIngredientChange(index, 'notes', e.target.value)}
-                  className="input w-full"
-                  placeholder="Optional notes"
-                />
-              </div>
-              
-              <div className="flex items-end">
-                <button
-                  onClick={() => removeIngredient(index)}
-                  className="text-red-400 hover:text-red-300"
-                >
-                  <Trash2 className="w-5 h-5" />
-                </button>
-              </div>
-            </div>
-          ))}
+            <option value="">Select station...</option>
+            {settings?.kitchen_stations?.map((station) => (
+              <option key={station} value={station}>
+                {station}
+              </option>
+            ))}
+          </select>
         </div>
       </div>
     </div>
