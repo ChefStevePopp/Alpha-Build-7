@@ -1,6 +1,7 @@
 import React from 'react';
 import { Package } from 'lucide-react';
 import type { MasterIngredient } from '@/types/master-ingredient';
+import { useFoodCategories } from '@/hooks/useFoodCategories';
 import type { OperationsSettings } from '@/types/operations';
 
 interface BasicInformationProps {
@@ -14,13 +15,57 @@ export const BasicInformation: React.FC<BasicInformationProps> = ({
   settings,
   onChange
 }) => {
+  const {
+    groups,
+    categories,
+    subCategories,
+    selectedGroup,
+    selectedCategory,
+    selectedSubCategory,
+    isLoading,
+    error
+  } = useFoodCategories(formData.majorGroup, formData.category);
+
+  const handleMajorGroupChange = (groupId: string) => {
+    onChange({
+      ...formData,
+      majorGroup: groupId,
+      majorGroupName: groups.find(g => g.id === groupId)?.name || '',
+      category: '',
+      categoryName: '',
+      subCategory: '',
+      subCategoryName: ''
+    });
+  };
+
+  const handleCategoryChange = (categoryId: string) => {
+    onChange({
+      ...formData,
+      category: categoryId,
+      categoryName: categories.find(c => c.id === categoryId)?.name || '',
+      subCategory: '',
+      subCategoryName: ''
+    });
+  };
+
+  const handleSubCategoryChange = (subCategoryId: string) => {
+    onChange({
+      ...formData,
+      subCategory: subCategoryId,
+      subCategoryName: subCategories.find(s => s.id === subCategoryId)?.name || ''
+    });
+  };
+
+  if (isLoading) {
+    return <div className="text-gray-400">Loading categories...</div>;
+  }
+
+  if (error) {
+    return <div className="text-red-400">Error loading categories: {error}</div>;
+  }
+
   return (
     <div className="space-y-4">
-      {/* Diagnostic Text */}
-      <div className="text-xs text-gray-500 font-mono">
-        src/features/admin/components/sections/recipe/MasterIngredientList/EditIngredientModal/BasicInformation.tsx
-      </div>
-
       <div className="flex items-center gap-3">
         <div className="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center">
           <Package className="w-4 h-4 text-blue-400" />
@@ -37,7 +82,7 @@ export const BasicInformation: React.FC<BasicInformationProps> = ({
             type="text"
             value={formData.itemCode}
             onChange={(e) => onChange({ ...formData, itemCode: e.target.value })}
-            className="input w-full"
+            className="input w-full bg-gray-800/50"
             placeholder="Enter vendor or bar code"
           />
         </div>
@@ -49,7 +94,7 @@ export const BasicInformation: React.FC<BasicInformationProps> = ({
             type="text"
             value={formData.product}
             onChange={(e) => onChange({ ...formData, product: e.target.value })}
-            className="input w-full"
+            className="input w-full bg-gray-800/50"
             required
           />
         </div>
@@ -62,17 +107,12 @@ export const BasicInformation: React.FC<BasicInformationProps> = ({
           </label>
           <select
             value={formData.majorGroup || ''}
-            onChange={(e) => onChange({ 
-              ...formData, 
-              majorGroup: e.target.value,
-              category: '', // Reset lower levels when parent changes
-              subCategory: ''
-            })}
-            className="input w-full"
+            onChange={(e) => handleMajorGroupChange(e.target.value)}
+            className="input w-full bg-gray-800/50"
             required
           >
             <option value="">Select major group...</option>
-            {settings?.food_category_groups?.map(group => (
+            {groups.map(group => (
               <option key={group.id} value={group.id}>
                 {group.name}
               </option>
@@ -86,23 +126,17 @@ export const BasicInformation: React.FC<BasicInformationProps> = ({
           </label>
           <select
             value={formData.category || ''}
-            onChange={(e) => onChange({ 
-              ...formData, 
-              category: e.target.value,
-              subCategory: '' // Reset sub-category when category changes
-            })}
-            className="input w-full"
+            onChange={(e) => handleCategoryChange(e.target.value)}
+            className="input w-full bg-gray-800/50"
             required
             disabled={!formData.majorGroup}
           >
             <option value="">Select category...</option>
-            {settings?.food_categories
-              ?.filter(cat => cat.group_id === formData.majorGroup)
-              .map(category => (
-                <option key={category.id} value={category.id}>
-                  {category.name}
-                </option>
-              ))}
+            {categories.map(category => (
+              <option key={category.id} value={category.id}>
+                {category.name}
+              </option>
+            ))}
           </select>
         </div>
 
@@ -112,18 +146,16 @@ export const BasicInformation: React.FC<BasicInformationProps> = ({
           </label>
           <select
             value={formData.subCategory || ''}
-            onChange={(e) => onChange({ ...formData, subCategory: e.target.value })}
-            className="input w-full"
+            onChange={(e) => handleSubCategoryChange(e.target.value)}
+            className="input w-full bg-gray-800/50"
             disabled={!formData.category}
           >
             <option value="">Select sub-category...</option>
-            {settings?.food_sub_categories
-              ?.filter(sub => sub.category_id === formData.category)
-              .map(subCategory => (
-                <option key={subCategory.id} value={subCategory.id}>
-                  {subCategory.name}
-                </option>
-              ))}
+            {subCategories.map(subCategory => (
+              <option key={subCategory.id} value={subCategory.id}>
+                {subCategory.name}
+              </option>
+            ))}
           </select>
         </div>
       </div>
@@ -136,7 +168,7 @@ export const BasicInformation: React.FC<BasicInformationProps> = ({
           <select
             value={formData.vendor}
             onChange={(e) => onChange({ ...formData, vendor: e.target.value })}
-            className="input w-full"
+            className="input w-full bg-gray-800/50"
             required
           >
             <option value="">Select vendor...</option>
@@ -152,7 +184,7 @@ export const BasicInformation: React.FC<BasicInformationProps> = ({
           <select
             value={formData.storageArea}
             onChange={(e) => onChange({ ...formData, storageArea: e.target.value })}
-            className="input w-full"
+            className="input w-full bg-gray-800/50"
             required
           >
             <option value="">Select storage area...</option>
