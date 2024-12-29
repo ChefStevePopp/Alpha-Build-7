@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { routes } from "tempo-devtools"
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { MainLayout, AuthLayout } from '@/shared/layouts';
 import { SignIn } from '@/features/auth/components/SignIn';
@@ -80,6 +81,9 @@ function App() {
   return (
     <ErrorBoundary onError={handleError}>
       <Routes>
+        {/* Tempo routes - add this before other routes */}
+      {import.meta.env.VITE_TEMPO && useRoutes(routes)}
+
         {/* Auth Routes */}
         <Route path="/auth/*" element={<AuthLayout />}>
           <Route path="signin" element={<SignIn />} />
@@ -95,6 +99,7 @@ function App() {
         <Route path="/admin/*" element={<PrivateRoute><AdminRoutes /></PrivateRoute>} />
 
         {/* Default Routes */}
+        {import.meta.env.VITE_TEMPO && <Route path="/tempobook/*" />}
         <Route path="/" element={
           <Navigate to={ROUTES.KITCHEN.DASHBOARD} replace />
         } />
