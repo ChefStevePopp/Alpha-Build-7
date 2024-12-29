@@ -19,7 +19,7 @@ export const AdminLayout: React.FC = () => {
               className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors"
             >
               <ArrowLeft className="w-5 h-5" />
-              Return to Kitchen AI
+              Return to Main Dashboard
             </button>
             <UserMenu />
           </div>
