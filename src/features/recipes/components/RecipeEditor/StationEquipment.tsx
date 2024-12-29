@@ -8,7 +8,8 @@ import {
   AlertTriangle,
   MoveUp,
   MoveDown,
-  Link as LinkIcon
+  Link as LinkIcon,
+  X
 } from 'lucide-react';
 import type { Recipe, RecipeEquipment } from '../../types/recipe';
 
@@ -31,13 +32,13 @@ export const StationEquipment: React.FC<StationEquipmentProps> = ({ recipe, onCh
     };
 
     onChange({
-      equipment: [...recipe.equipment, newEquipment]
+      equipment: [...(recipe.equipment || []), newEquipment]
     });
   };
 
   const updateEquipment = (id: string, updates: Partial<RecipeEquipment>) => {
     onChange({
-      equipment: recipe.equipment.map(eq =>
+      equipment: (recipe.equipment || []).map(eq =>
         eq.id === id ? { ...eq, ...updates } : eq
       )
     });
@@ -45,17 +46,18 @@ export const StationEquipment: React.FC<StationEquipmentProps> = ({ recipe, onCh
 
   const removeEquipment = (id: string) => {
     onChange({
-      equipment: recipe.equipment.filter(eq => eq.id !== id)
+      equipment: (recipe.equipment || []).filter(eq => eq.id !== id)
     });
   };
 
   const moveEquipment = (id: string, direction: 'up' | 'down') => {
-    const index = recipe.equipment.findIndex(eq => eq.id === id);
+    const equipment = recipe.equipment || [];
+    const index = equipment.findIndex(eq => eq.id === id);
     const newIndex = direction === 'up' ? index - 1 : index + 1;
 
-    if (newIndex < 0 || newIndex >= recipe.equipment.length) return;
+    if (newIndex < 0 || newIndex >= equipment.length) return;
 
-    const updatedEquipment = [...recipe.equipment];
+    const updatedEquipment = [...equipment];
     [updatedEquipment[index], updatedEquipment[newIndex]] = 
     [updatedEquipment[newIndex], updatedEquipment[index]];
 
@@ -66,7 +68,7 @@ export const StationEquipment: React.FC<StationEquipmentProps> = ({ recipe, onCh
     const alternative = prompt('Enter alternative equipment:');
     if (!alternative) return;
 
-    const equipment = recipe.equipment.find(eq => eq.id === equipmentId);
+    const equipment = (recipe.equipment || []).find(eq => eq.id === equipmentId);
     if (!equipment) return;
 
     updateEquipment(equipmentId, {
@@ -145,7 +147,7 @@ export const StationEquipment: React.FC<StationEquipmentProps> = ({ recipe, onCh
         </div>
 
         <div className="space-y-4">
-          {recipe.equipment.map((equipment, index) => (
+          {(recipe.equipment || []).map((equipment, index) => (
             <div
               key={equipment.id}
               className="bg-gray-800/50 rounded-lg p-4 space-y-4"
@@ -189,7 +191,7 @@ export const StationEquipment: React.FC<StationEquipmentProps> = ({ recipe, onCh
                       <MoveUp className="w-4 h-4" />
                     </button>
                   )}
-                  {index < recipe.equipment.length - 1 && (
+                  {index < (recipe.equipment || []).length - 1 && (
                     <button
                       onClick={() => moveEquipment(equipment.id, 'down')}
                       className="btn-ghost p-1"
@@ -286,12 +288,28 @@ export const StationEquipment: React.FC<StationEquipmentProps> = ({ recipe, onCh
 
       {/* Timeline Optimization */}
       <div className="card p-6">
-        <h3 className="text-lg font-medium text-white mb-4 flex items-center gap-2">
-          <Clock className="w-5 h-5 text-green-400" />
-          Timeline Optimization
-        </h3>
+        <div className="mb-6">
+          <h3 className="text-lg font-medium text-white mb-2 flex items-center gap-2">
+            <Clock className="w-5 h-5 text-green-400" />
+            Timeline Optimization
+          </h3>
+          <div className="space-y-4">
+            <textarea
+              value={recipe.timelineNotes || ''}
+              onChange={(e) => onChange({ timelineNotes: e.target.value })}
+              className="input w-full h-32"
+              placeholder="Share your expertise on optimizing production time. Consider:
+- Parallel tasks during longer processes
+- Equipment and station utilization
+- Prep sequencing for maximum efficiency
+- Batch production opportunities
+- Critical timing considerations"
+            />
+          </div>
+        </div>
+
         <div className="space-y-4">
-          {recipe.steps.map((step, index) => (
+          {(recipe.steps || []).map((step, index) => (
             <div
               key={step.id}
               className="flex items-center gap-4 bg-gray-800/50 rounded-lg p-4"
@@ -308,7 +326,7 @@ export const StationEquipment: React.FC<StationEquipmentProps> = ({ recipe, onCh
                   </div>
                   <div className="flex items-center gap-2 text-sm text-gray-400">
                     <ChefHat className="w-4 h-4" />
-                    <span>{recipe.equipment.find(eq => step.equipment?.includes(eq.id))?.station || 'No station'}</span>
+                    <span>{(recipe.equipment || []).find(eq => step.equipment?.includes(eq.id))?.station || 'No station'}</span>
                   </div>
                 </div>
               </div>
