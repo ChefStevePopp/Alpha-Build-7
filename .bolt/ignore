@@ -5,3 +5,10 @@
 /home/project/src/components
 /home/project/src/theme
 /home/project/supabase/migrations
+/home/project/src/features/account
+/home/project/src/features/admin
+/home/project/src/features/allergens
+/home/project/src/features/schedule
+/home/project/src/features/team
+/home/project/src/features/kitchen
+/home/project/src/features/auth
