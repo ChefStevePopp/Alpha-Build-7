@@ -1,7 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { FileSpreadsheet, Database, UtensilsCrossed, Package, Settings, Box } from 'lucide-react';
+import {
+  FileSpreadsheet,
+  Database,
+  CircleDollarSign,
+  Package,
+  Settings,
+  Box,
+} from 'lucide-react';
 import { MasterIngredientList } from './recipe/MasterIngredientList';
-import { PreparedItemsManagement } from './PreparedItems/PreparedItemsManagement';
+import { VendorInvoiceManager } from './VendorInvoice/VendorInvoiceManager';
 import { InventoryManagement } from './InventoryManagement';
 import { OperationsManager } from './OperationsManager';
 import { FoodRelationshipsManager } from './FoodRelationshipsManager';
@@ -10,12 +17,28 @@ import { useLocation, useNavigate } from 'react-router-dom';
 export const ExcelImports: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<'ingredients' | 'prepared' | 'inventory' | 'operations' | 'relationships'>('ingredients');
+  const [activeTab, setActiveTab] = useState<
+    'ingredients' | 'prepared' | 'inventory' | 'operations' | 'relationships'
+  >('ingredients');
 
   // Sync tab state with URL hash
   useEffect(() => {
-    const hash = location.hash.replace('#', '') as 'ingredients' | 'prepared' | 'inventory' | 'operations' | 'relationships';
-    if (hash && ['ingredients', 'prepared', 'inventory', 'operations', 'relationships'].includes(hash)) {
+    const hash = location.hash.replace('#', '') as
+      | 'ingredients'
+      | 'prepared'
+      | 'inventory'
+      | 'operations'
+      | 'relationships';
+    if (
+      hash &&
+      [
+        'ingredients',
+        'prepared',
+        'inventory',
+        'operations',
+        'relationships',
+      ].includes(hash)
+    ) {
       setActiveTab(hash);
     } else {
       // Set default hash if none exists
@@ -33,33 +56,33 @@ export const ExcelImports: React.FC = () => {
       id: 'ingredients' as const,
       label: 'Master Ingredients',
       icon: Database,
-      color: 'primary'
+      color: 'primary',
     },
     {
       id: 'prepared' as const,
-      label: 'Prepared Items',
-      icon: UtensilsCrossed,
-      color: 'green'
+      label: 'Vendor Invoices',
+      icon: CircleDollarSign,
+      color: 'green',
     },
     {
       id: 'inventory' as const,
       label: 'Food Inventory',
       icon: Package,
-      color: 'amber'
+      color: 'amber',
     },
     {
       id: 'operations' as const,
       label: 'Operations',
       icon: Settings,
-      color: 'rose'
+      color: 'rose',
     },
     {
       id: 'relationships' as const,
       label: 'Food Relationships',
       icon: Box,
-      color: 'purple'
-    }
-  ] as const;
+      color: 'purple',
+    },
+  ];
 
   return (
     <div className="space-y-6">
@@ -79,11 +102,15 @@ export const ExcelImports: React.FC = () => {
           <button
             key={tab.id}
             onClick={() => handleTabChange(tab.id)}
-            className={`tab ${tab.color} ${activeTab === tab.id ? 'active' : ''}`}
+            className={`tab ${tab.color} ${
+              activeTab === tab.id ? 'active' : ''
+            }`}
           >
-            <tab.icon className={`w-5 h-5 ${
-              activeTab === tab.id ? `text-${tab.color}-400` : 'text-current'
-            }`} />
+            <tab.icon
+              className={`w-5 h-5 ${
+                activeTab === tab.id ? `text-${tab.color}-400` : 'text-current'
+              }`}
+            />
             {tab.label}
           </button>
         ))}
@@ -92,7 +119,7 @@ export const ExcelImports: React.FC = () => {
       {/* Tab Content */}
       <div className="bg-gray-800 rounded-lg p-6">
         {activeTab === 'ingredients' && <MasterIngredientList />}
-        {activeTab === 'prepared' && <PreparedItemsManagement />}
+        {activeTab === 'prepared' && <VendorInvoiceManager />}
         {activeTab === 'inventory' && <InventoryManagement />}
         {activeTab === 'operations' && <OperationsManager />}
         {activeTab === 'relationships' && <FoodRelationshipsManager />}
