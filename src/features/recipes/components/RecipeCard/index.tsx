@@ -1,16 +1,58 @@
-import React, { useState } from 'react';
-import { Clock, Scale, DollarSign, Warehouse, AlertTriangle, ImageOff, ChefHat } from 'lucide-react';
-import { AllergenBadge } from '@/features/allergens/components';
-import type { Recipe } from '../../types';
+import React, { useMemo, useState } from 'react';
+import { 
+  ChefHat, 
+  Clock, 
+  Scale, 
+  DollarSign, 
+  Warehouse,
+  AlertTriangle,
+  ImageOff
+} from 'lucide-react';
+import type { Recipe } from '../../types/recipe';
 
 interface RecipeCardProps {
   recipe: Recipe;
   onClick: () => void;
+  laborRate?: number;
   className?: string;
 }
 
-export const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, onClick, className = '' }) => {
+const LABOR_RATE_PER_HOUR = 30;
+
+export const RecipeCard: React.FC<RecipeCardProps> = ({ 
+  recipe, 
+  onClick, 
+  laborRate = LABOR_RATE_PER_HOUR,
+  className = ''
+}) => {
   const [imageError, setImageError] = useState(false);
+
+  // Memoize unique categories and stations
+  const { uniqueCategories, uniqueStations } = useMemo(() => ({
+    uniqueCategories: Array.from(new Set([recipe.sub_category])).filter(Boolean),
+    uniqueStations: Array.from(new Set([recipe.station])).filter(Boolean)
+  }), [recipe.sub_category, recipe.station]);
+
+  // Memoize color schemes
+  const colorSchemes = useMemo(() => [
+    'bg-amber-500/20 text-amber-400 border-amber-500/50',
+    'bg-red-500/20 text-red-400 border-red-500/50',
+    'bg-green-500/20 text-green-400 border-green-500/50',
+    'bg-blue-500/20 text-blue-400 border-blue-500/50',
+    'bg-purple-500/20 text-purple-400 border-purple-500/50',
+    'bg-pink-500/20 text-pink-400 border-pink-500/50',
+    'bg-indigo-500/20 text-indigo-400 border-indigo-500/50',
+    'bg-orange-500/20 text-orange-400 border-orange-500/50',
+    'bg-cyan-500/20 text-cyan-400 border-cyan-500/50',
+    'bg-rose-500/20 text-rose-400 border-rose-500/50'
+  ], []);
+
+  // Memoize color getter function
+  const getColorForValue = useMemo(() => (value: string, type: 'category' | 'station') => {
+    const collection = type === 'category' ? uniqueCategories : uniqueStations;
+    const index = collection.indexOf(value);
+    return index >= 0 ? colorSchemes[index % colorSchemes.length] : colorSchemes[0];
+  }, [uniqueCategories, uniqueStations, colorSchemes]);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -21,7 +63,14 @@ export const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, onClick, classNa
     }).format(value);
   };
 
-  const totalTime = recipe.prepTime + recipe.cookTime;
+  const totalTime = recipe.prep_time + recipe.cook_time;
+  const laborCost = (totalTime / 60) * laborRate;
+
+  const Badge = ({ children, className = '' }: { children: React.ReactNode; className?: string }) => (
+    <span className={`inline-flex items-center px-3 py-1.5 rounded-lg text-sm font-medium border ${className}`}>
+      {children}
+    </span>
+  );
 
   return (
     <button
@@ -35,7 +84,7 @@ export const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, onClick, classNa
         <div className="absolute inset-0 bg-gradient-to-t from-gray-900/85 via-gray-900/50 to-transparent z-10" />
         {!imageError ? (
           <img
-            src={recipe.imageUrl || "https://images.unsplash.com/photo-1546548970-71785318a17b?auto=format&fit=crop&w=2000&q=80"}
+            src={recipe.image_url || "https://images.unsplash.com/photo-1546548970-71785318a17b?auto=format&fit=crop&w=2000&q=80"}
             alt={recipe.name}
             className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-300"
             onError={() => setImageError(true)}
@@ -64,7 +113,7 @@ export const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, onClick, classNa
           </h3>
           <div className="flex items-center gap-2 mt-1">
             <Clock className="w-3.5 h-3.5 text-amber-400" />
-            <span className="text-xs text-gray-300">{recipe.shelfLife}</span>
+            <span className="text-xs text-gray-300">{recipe.shelf_life}</span>
           </div>
         </div>
       </div>
@@ -75,7 +124,7 @@ export const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, onClick, classNa
         <div className="flex items-center gap-2 text-gray-300">
           <Warehouse className="w-4 h-4 text-gray-400" />
           <span className="text-sm">
-            {recipe.storageArea} • {recipe.container} ({recipe.containerType})
+            {recipe.storage_area} • {recipe.container} ({recipe.container_type})
           </span>
         </div>
 
@@ -83,12 +132,12 @@ export const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, onClick, classNa
         <div className="space-y-2">
           <div className="text-xs font-medium text-gray-400">Classification</div>
           <div className="flex flex-wrap gap-2">
-            <span className="px-3 py-1 rounded-full bg-primary-500/20 text-primary-400 text-xs">
-              {recipe.subCategory}
-            </span>
-            <span className="px-3 py-1 rounded-full bg-amber-500/20 text-amber-400 text-xs">
+            <Badge className={getColorForValue(recipe.sub_category, 'category')}>
+              {recipe.sub_category}
+            </Badge>
+            <Badge className={getColorForValue(recipe.station, 'station')}>
               {recipe.station}
-            </span>
+            </Badge>
           </div>
         </div>
 
@@ -97,13 +146,13 @@ export const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, onClick, classNa
           <div className="flex items-center gap-2">
             <Scale className="w-4 h-4 text-primary-400" />
             <span className="text-sm text-gray-300">
-              {recipe.recipeUnitRatio} {recipe.unitType}
+              {recipe.recipe_unit_ratio} {recipe.unit_type}
             </span>
           </div>
           <div className="flex items-center gap-2">
             <DollarSign className="w-4 h-4 text-emerald-400" />
             <span className="text-sm text-gray-300">
-              {formatCurrency(recipe.costPerRatioUnit)}/{recipe.unitType}
+              {formatCurrency(recipe.cost_per_unit)}/{recipe.unit_type}
             </span>
           </div>
         </div>
@@ -112,33 +161,34 @@ export const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, onClick, classNa
         <div className="flex items-center justify-between border-t border-gray-700/50 pt-3">
           <div className="flex items-center gap-2">
             <Clock className="w-4 h-4 text-gray-400" />
-            <span className="text-sm text-gray-300">Total: {totalTime} mins</span>
+            <span className="text-sm text-gray-300">Prep: {totalTime} mins</span>
           </div>
           <div className="flex items-center gap-2">
             <span className="text-sm text-emerald-400">
-              Labor: {formatCurrency(recipe.costPerServing)}
+              Labor: {formatCurrency(laborCost)}
             </span>
           </div>
         </div>
 
         {/* Allergens */}
-        {recipe.allergenInfo.contains.length > 0 && (
-          <div className="pt-3 border-t border-gray-700/50">
-            <div className="flex items-center gap-2 text-gray-400 mb-2">
-              <AlertTriangle className="w-4 h-4" />
-              <span className="text-xs font-medium">Contains:</span>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {recipe.allergenInfo.contains.map(allergen => (
-                <AllergenBadge
-                  key={allergen}
-                  type={allergen}
-                  size="sm"
-                />
-              ))}
-            </div>
-          </div>
-        )}
+{recipe.allergenInfo?.contains?.length > 0 && (  // Changed from recipe.allergens to recipe.allergenInfo
+  <div className="pt-3 border-t border-gray-700/50">
+    <div className="flex items-center gap-2 text-gray-400 mb-2">
+      <AlertTriangle className="w-4 h-4" />
+      <span className="text-xs font-medium">Contains:</span>
+    </div>
+    <div className="flex flex-wrap gap-1">
+      {recipe.allergenInfo.contains.map(allergen => (  // Changed from recipe.allergens to recipe.allergenInfo
+        <span
+          key={allergen}
+          className="px-2 py-0.5 bg-red-500/10 text-red-400 rounded text-xs"
+        >
+          {allergen}
+        </span>
+      ))}
+    </div>
+  </div>
+)}
       </div>
 
       {/* Hover border effect */}
@@ -146,3 +196,5 @@ export const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, onClick, classNa
     </button>
   );
 };
+
+export default RecipeCard;
