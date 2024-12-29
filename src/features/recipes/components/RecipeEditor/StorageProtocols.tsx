@@ -1,12 +1,12 @@
 import React from 'react';
-import { 
-  Thermometer, 
-  AlertTriangle, 
+import {
+  Thermometer,
+  AlertTriangle,
   Clock,
   Box,
   Info,
   Shield,
-  Scale
+  Scale,
 } from 'lucide-react';
 import type { Recipe } from '../../types/recipe';
 import { useOperationsStore } from '@/stores/operationsStore';
@@ -18,7 +18,7 @@ interface StorageProtocolsProps {
 
 export const StorageProtocols: React.FC<StorageProtocolsProps> = ({
   recipe,
-  onChange
+  onChange,
 }) => {
   const { settings } = useOperationsStore();
 
@@ -26,8 +26,8 @@ export const StorageProtocols: React.FC<StorageProtocolsProps> = ({
     onChange({
       storage: {
         ...recipe.storage,
-        ...updates
-      }
+        ...updates,
+      },
     });
   };
 
@@ -50,8 +50,10 @@ export const StorageProtocols: React.FC<StorageProtocolsProps> = ({
               className="input w-full"
             >
               <option value="">Select storage area...</option>
-              {settings?.storage_areas?.map(area => (
-                <option key={area} value={area}>{area}</option>
+              {settings?.storage_areas?.map((area) => (
+                <option key={area} value={area}>
+                  {area}
+                </option>
               ))}
             </select>
           </div>
@@ -65,8 +67,10 @@ export const StorageProtocols: React.FC<StorageProtocolsProps> = ({
               className="input w-full"
             >
               <option value="">Select container type...</option>
-              {settings?.container_types?.map(type => (
-                <option key={type} value={type}>{type}</option>
+              {settings?.container_types?.map((type) => (
+                <option key={type} value={type}>
+                  {type}
+                </option>
               ))}
             </select>
           </div>
@@ -88,23 +92,27 @@ export const StorageProtocols: React.FC<StorageProtocolsProps> = ({
               <input
                 type="number"
                 value={recipe.storage?.temperature?.value || 40}
-                onChange={(e) => updateStorage({
-                  temperature: {
-                    ...recipe.storage?.temperature,
-                    value: parseFloat(e.target.value)
-                  }
-                })}
+                onChange={(e) =>
+                  updateStorage({
+                    temperature: {
+                      ...recipe.storage?.temperature,
+                      value: parseFloat(e.target.value),
+                    },
+                  })
+                }
                 className="input flex-1"
                 step="0.1"
               />
               <select
                 value={recipe.storage?.temperature?.unit || 'F'}
-                onChange={(e) => updateStorage({
-                  temperature: {
-                    ...recipe.storage?.temperature,
-                    unit: e.target.value as 'F' | 'C'
-                  }
-                })}
+                onChange={(e) =>
+                  updateStorage({
+                    temperature: {
+                      ...recipe.storage?.temperature,
+                      unit: e.target.value as 'F' | 'C',
+                    },
+                  })
+                }
                 className="input w-20"
               >
                 <option value="F">°F</option>
@@ -120,12 +128,14 @@ export const StorageProtocols: React.FC<StorageProtocolsProps> = ({
               <input
                 type="number"
                 value={recipe.storage?.temperature?.tolerance || 2}
-                onChange={(e) => updateStorage({
-                  temperature: {
-                    ...recipe.storage?.temperature,
-                    tolerance: parseFloat(e.target.value)
-                  }
-                })}
+                onChange={(e) =>
+                  updateStorage({
+                    temperature: {
+                      ...recipe.storage?.temperature,
+                      tolerance: parseFloat(e.target.value),
+                    },
+                  })
+                }
                 className="input flex-1"
                 min="0"
                 step="0.1"
@@ -141,9 +151,12 @@ export const StorageProtocols: React.FC<StorageProtocolsProps> = ({
             </label>
             <div className="bg-gray-800/50 rounded-lg p-3 text-center">
               <p className="text-white">
-                {(recipe.storage?.temperature?.value || 40) - (recipe.storage?.temperature?.tolerance || 2)}° - 
-                {(recipe.storage?.temperature?.value || 40) + (recipe.storage?.temperature?.tolerance || 2)}°
-                {recipe.storage?.temperature?.unit || 'F'}
+                {(recipe.storage?.temperature?.value || 40) -
+                  (recipe.storage?.temperature?.tolerance || 2)}
+                ° -
+                {(recipe.storage?.temperature?.value || 40) +
+                  (recipe.storage?.temperature?.tolerance || 2)}
+                °{recipe.storage?.temperature?.unit || 'F'}
               </p>
             </div>
           </div>
@@ -165,24 +178,28 @@ export const StorageProtocols: React.FC<StorageProtocolsProps> = ({
               <input
                 type="number"
                 value={recipe.storage?.shelfLife?.value || 1}
-                onChange={(e) => updateStorage({
-                  shelfLife: {
-                    ...recipe.storage?.shelfLife,
-                    value: parseInt(e.target.value)
-                  }
-                })}
+                onChange={(e) =>
+                  updateStorage({
+                    shelfLife: {
+                      ...recipe.storage?.shelfLife,
+                      value: parseInt(e.target.value),
+                    },
+                  })
+                }
                 className="input flex-1"
                 min="1"
                 step="1"
               />
               <select
                 value={recipe.storage?.shelfLife?.unit || 'days'}
-                onChange={(e) => updateStorage({
-                  shelfLife: {
-                    ...recipe.storage?.shelfLife,
-                    unit: e.target.value as 'hours' | 'days' | 'weeks'
-                  }
-                })}
+                onChange={(e) =>
+                  updateStorage({
+                    shelfLife: {
+                      ...recipe.storage?.shelfLife,
+                      unit: e.target.value as 'hours' | 'days' | 'weeks',
+                    },
+                  })
+                }
                 className="input w-32"
               >
                 <option value="hours">Hours</option>
@@ -197,9 +214,13 @@ export const StorageProtocols: React.FC<StorageProtocolsProps> = ({
             </label>
             <textarea
               value={recipe.storage?.specialInstructions?.join('\n') || ''}
-              onChange={(e) => updateStorage({
-                specialInstructions: e.target.value.split('\n').filter(Boolean)
-              })}
+              onChange={(e) =>
+                updateStorage({
+                  specialInstructions: e.target.value
+                    .split('\n')
+                    .filter(Boolean),
+                })
+              }
               className="input w-full h-24"
               placeholder="Enter any special storage or handling instructions..."
             />
@@ -214,8 +235,9 @@ export const StorageProtocols: React.FC<StorageProtocolsProps> = ({
           <div>
             <p className="text-yellow-400 font-medium">Storage Safety</p>
             <p className="text-sm text-gray-300 mt-1">
-              Ensure proper temperature control and storage conditions are maintained at all times.
-              Monitor shelf life and rotate stock according to FIFO principles.
+              Ensure proper temperature control and storage conditions are
+              maintained at all times. Monitor shelf life and rotate stock
+              according to FIFO principles.
             </p>
           </div>
         </div>
