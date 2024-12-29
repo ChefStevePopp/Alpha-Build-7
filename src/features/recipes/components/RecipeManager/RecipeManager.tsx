@@ -1,64 +1,87 @@
 import React, { useState, useEffect } from 'react';
 import { ChefHat, UtensilsCrossed, Plus, Search, Upload } from 'lucide-react';
-import { useRecipeStore } from '@/stores/recipeStore';
-import { RecipeCard } from '../RecipeCard';
+import { useRecipeStore } from '@/features/recipes/stores/recipeStore';
+import RecipeCard from '../RecipeCard';
 import { RecipeEditorModal } from '../RecipeEditor';
 import { RecipeImportModal } from '../RecipeImportModal';
 import type { Recipe } from '../../types/recipe';
+import { useSupabase } from '@/context/SupabaseContext';
+import toast from 'react-hot-toast';
 
-export const RecipeManager: React.FC = () => {
-  // Diagnostic Text
+const RecipeManager: React.FC = () => {
   const diagnosticPath = "src/features/recipes/components/RecipeManager/RecipeManager.tsx";
 
   const [activeTab, setActiveTab] = useState<'prepared' | 'final'>('prepared');
   const [searchTerm, setSearchTerm] = useState('');
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [editingRecipe, setEditingRecipe] = useState<Recipe | null>(null);
-  
+  const [modalMode, setModalMode] = useState<'create' | 'edit'>('create');
+  const [organizationId, setOrganizationId] = useState<string>('');
+  const [isLoading, setIsLoading] = useState(true);
+
   const { recipes, fetchRecipes, filterRecipes } = useRecipeStore();
+  const { supabase } = useSupabase();
+
+  // Fetch organization ID on mount
+  useEffect(() => {
+    const getOrgId = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user?.user_metadata?.organizationId) {
+          setOrganizationId(user.user_metadata.organizationId);
+        }
+      } catch (error) {
+        console.error('Failed to fetch organization ID:', error);
+        toast.error('Failed to fetch organization ID');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    getOrgId();
+  }, [supabase]);
 
   // Fetch recipes on mount
   useEffect(() => {
-    fetchRecipes();
+    fetchRecipes().catch((error) => {
+      console.error('Error fetching recipes:', error);
+      toast.error('Failed to load recipes');
+    });
   }, [fetchRecipes]);
 
   // Filter recipes based on active tab and search term
   const filteredRecipes = filterRecipes(activeTab, searchTerm);
 
   const handleNewRecipe = () => {
+    setModalMode('create');
     const newRecipe: Partial<Recipe> = {
       type: activeTab,
       name: '',
       description: '',
       station: '',
-      storageArea: '',
+      storage_area: '',
       container: '',
-      containerType: '',
-      shelfLife: '',
-      prepTime: 0,
-      cookTime: 0,
-      totalTime: 0,
-      recipeUnitRatio: '1',
-      unitType: 'portion',
-      yield: {
-        amount: 1,
-        unit: 'portion'
-      },
+      container_type: '',
+      shelf_life: '',
+      prep_time: 0,
+      cook_time: 0,
+      rest_time: 0,
+      recipe_unit_ratio: '1',
+      unit_type: 'portion',
+      yield_amount: 1,
+      yield_unit: 'portion',
       ingredients: [],
       steps: [],
       media: [],
-      allergenInfo: {
+      allergens: {
         contains: [],
         mayContain: [],
         crossContactRisk: []
       },
-      qualityStandards: {
-        appearance: {
-          description: ''
-        },
-        texture: [],
-        taste: [],
-        aroma: [],
+      quality_standards: {
+        appearance_description: '',
+        texture_points: [],
+        taste_points: [],
+        aroma_points: [],
         temperature: {
           value: 0,
           unit: 'F',
@@ -66,22 +89,20 @@ export const RecipeManager: React.FC = () => {
         }
       },
       training: {
-        requiredSkillLevel: 'beginner',
-        certificationRequired: [],
-        commonErrors: [],
-        keyTechniques: [],
-        safetyProtocols: []
+        required_skill_level: 'beginner',
+        certification_required: false,
+        common_errors: [],
+        key_techniques: [],
+        safety_protocols: [],
+        quality_standards: []
       },
-      equipment: [],
-      laborCostPerHour: 30,
-      ingredientCost: 0,
-      totalCost: 0,
-      costPerUnit: 0,
-      costPerRatioUnit: 0,
-      costPerServing: 0,
-      targetCostPercent: 25,
+      cost_per_unit: 0,
+      labor_cost_per_hour: 30,
+      total_cost: 0,
+      target_cost_percent: 25,
       version: '1.0',
-      versions: []
+      versions: [],
+      organization_id: organizationId
     };
     setEditingRecipe(newRecipe as Recipe);
   };
@@ -100,6 +121,10 @@ export const RecipeManager: React.FC = () => {
       color: 'green'
     }
   ] as const;
+
+  if (isLoading) {
+    return <div className="text-white">Loading...</div>;
+  }
 
   return (
     <div className="space-y-6">
@@ -167,7 +192,10 @@ export const RecipeManager: React.FC = () => {
             <RecipeCard
               key={recipe.id}
               recipe={recipe}
-              onClick={() => setEditingRecipe(recipe)}
+              onClick={() => {
+                setModalMode('edit');
+                setEditingRecipe(recipe);
+              }}
             />
           ))
         ) : (
@@ -203,6 +231,8 @@ export const RecipeManager: React.FC = () => {
           isOpen={true}
           onClose={() => setEditingRecipe(null)}
           recipe={editingRecipe}
+          mode={modalMode}
+          organizationId={organizationId}
         />
       )}
 
@@ -213,3 +243,5 @@ export const RecipeManager: React.FC = () => {
     </div>
   );
 };
+
+export default RecipeManager;
