@@ -1,156 +1,127 @@
 import { create } from 'zustand';
 import { supabase } from '@/lib/supabase';
-import type { Recipe } from '../types/recipe';
-import toast from 'react-hot-toast';
+import type { Recipe, RecipeInput } from '../types/recipe';
 
 interface RecipeStore {
   recipes: Recipe[];
   isLoading: boolean;
   currentRecipe: Recipe | null;
+  error: string | null;
   fetchRecipes: () => Promise<void>;
-  createRecipe: (recipe: Omit<Recipe, 'id' | 'lastModified'>) => Promise<void>;
+  createRecipe: (recipe: RecipeInput) => Promise<Recipe>;
   updateRecipe: (id: string, updates: Partial<Recipe>) => Promise<void>;
   deleteRecipe: (id: string) => Promise<void>;
   setCurrentRecipe: (recipe: Recipe | null) => void;
-  filterRecipes: (type: 'prepared' | 'final', searchTerm: string) => Recipe[];
-  addRecipe: (recipe: Recipe) => Promise<void>;
+  filterRecipes: (type: Recipe['type'], searchTerm: string) => Recipe[];
+  updateRecipeStatus: (id: string, status: 'draft' | 'review' | 'approved' | 'archived') => Promise<void>;
 }
 
 export const useRecipeStore = create<RecipeStore>((set, get) => ({
   recipes: [],
   isLoading: false,
   currentRecipe: null,
+  error: null,
 
   fetchRecipes: async () => {
-    set({ isLoading: true });
+    set({ isLoading: true, error: null });
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user?.user_metadata?.organizationId) {
         throw new Error('No organization ID found');
       }
-
-      const { data, error } = await supabase
+  
+      // Simplified query - no more joins needed
+      const { data: recipes, error } = await supabase
         .from('recipes')
-        .select(`
-          *,
-          recipe_ingredients (
-            *,
-            master_ingredient:master_ingredients (
-              id, item_code, product
-            ),
-            prepared_recipe:recipes (
-              id, name
-            )
-          ),
-          recipe_steps (*),
-          recipe_equipment (*),
-          recipe_media (*),
-          recipe_versions (*),
-          recipe_quality_standards (*),
-          recipe_training (*)
-        `)
-        .eq('organization_id', user.user_metadata.organizationId)
-        .order('name');
-
+        .select('*')
+        .eq('organization_id', user.user_metadata.organizationId);
+  
       if (error) throw error;
+  
+      // No need to transform data since it's all in one table now
+      set({ recipes: recipes || [], error: null });
+    } catch (error) {
+      console.error('Error fetching recipes:', error);
+      set({ error: (error as Error).message });
+    } finally {
+      set({ isLoading: false });
+    }
+  },
 
-      // Transform data to match Recipe type
-      const transformedRecipes = data.map(recipe => ({
-        id: recipe.id,
-        type: recipe.type,
-        name: recipe.name,
-        description: recipe.description,
-        station: recipe.station,
-        storageArea: recipe.storage_area,
-        container: recipe.container,
-        containerType: recipe.container_type,
-        shelfLife: recipe.shelf_life,
-        prepTime: recipe.prep_time,
-        cookTime: recipe.cook_time,
-        recipeUnitRatio: recipe.recipe_unit_ratio,
-        unitType: recipe.unit_type,
-        yield: {
-          amount: recipe.yield_amount,
-          unit: recipe.yield_unit
-        },
-        ingredients: recipe.recipe_ingredients,
-        steps: recipe.recipe_steps,
-        media: recipe.recipe_media,
-        allergenInfo: {
+  createRecipe: async (recipeInput: RecipeInput) => {
+    set({ isLoading: true, error: null });
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user?.user_metadata?.organizationId) {
+        throw new Error('No organization ID found.');
+      }
+
+      const newRecipe = {
+        organization_id: user.user_metadata.organizationId,
+        created_by: user.id,
+        modified_by: user.id,
+        type: recipeInput.type || 'prepared',
+        name: recipeInput.name || '',
+        description: recipeInput.description || '',
+        status: recipeInput.status || 'draft',
+        station: recipeInput.station || '',
+        // Storage fields
+        storage_area: recipeInput.storage_area || '',
+        container: recipeInput.container || '',
+        container_type: recipeInput.container_type || '',
+        shelf_life: recipeInput.shelf_life || '',
+        // Timing
+        prep_time: recipeInput.prep_time || 0,
+        cook_time: recipeInput.cook_time || 0,
+        rest_time: recipeInput.rest_time || 0,
+        total_time: recipeInput.total_time || 0,
+        // Units and Yield
+        recipe_unit_ratio: recipeInput.recipe_unit_ratio || '',
+        unit_type: recipeInput.unit_type || '',
+        yield_amount: recipeInput.yield_amount || 0,
+        yield_unit: recipeInput.yield_unit || '',
+        // JSONB fields
+        ingredients: recipeInput.ingredients || [],
+        steps: recipeInput.steps || [],
+        equipment: recipeInput.equipment || [],
+        quality_standards: recipeInput.quality_standards || {},
+        allergenInfo: recipeInput.allergenInfo || {
           contains: [],
           mayContain: [],
           crossContactRisk: []
         },
-        qualityStandards: recipe.recipe_quality_standards?.[0] || {
-          appearance: { description: '' },
-          texture: [],
-          taste: [],
-          aroma: [],
-          temperature: { value: 0, unit: 'F', tolerance: 0 }
-        },
-        training: recipe.recipe_training?.[0] || {
-          requiredSkillLevel: 'beginner',
-          certificationRequired: [],
-          commonErrors: [],
-          keyTechniques: [],
-          safetyProtocols: []
-        },
-        equipment: recipe.recipe_equipment,
-        laborCostPerHour: recipe.labor_cost_per_hour,
-        ingredientCost: recipe.ingredient_cost,
-        totalCost: recipe.total_cost,
-        costPerUnit: recipe.cost_per_unit,
-        costPerRatioUnit: recipe.cost_per_ratio_unit,
-        costPerServing: recipe.cost_per_serving,
-        targetCostPercent: recipe.target_cost_percent,
-        version: recipe.version,
-        versions: recipe.recipe_versions,
-        lastModified: recipe.updated_at,
-        modifiedBy: recipe.modified_by
-      }));
+        media: recipeInput.media || [],
+        training: recipeInput.training || {},
+        versions: recipeInput.versions || [],
+        // Costing fields - matching exact database column names
+        labor_cost_per_hour: recipeInput.labor_cost_per_hour || 0,
+        total_cost: recipeInput.total_cost || 0,
+        target_cost_percent: recipeInput.target_cost_percent || 0
+      };
 
-      set({ recipes: transformedRecipes });
+      const { data: recipe, error } = await supabase
+        .from('recipes')
+        .insert([newRecipe])
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      // Update local state
+      await get().fetchRecipes();
+      
+      return recipe;
     } catch (error) {
-      console.error('Error fetching recipes:', error);
+      console.error('Error creating recipe:', error);
+      set({ error: (error as Error).message });
       throw error;
     } finally {
       set({ isLoading: false });
     }
   },
 
-  createRecipe: async (recipe) => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user?.user_metadata?.organizationId) {
-        throw new Error('No organization ID found');
-      }
-
-      const { data, error } = await supabase
-        .from('recipes')
-        .insert([{
-          organization_id: user.user_metadata.organizationId,
-          ...recipe,
-          created_by: user.id,
-          modified_by: user.id
-        }])
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      set(state => ({
-        recipes: [...state.recipes, data]
-      }));
-
-      toast.success('Recipe created successfully');
-    } catch (error) {
-      console.error('Error creating recipe:', error);
-      toast.error('Failed to create recipe');
-      throw error;
-    }
-  },
-
-  updateRecipe: async (id, updates) => {
+  updateRecipe: async (id: string, updates: Partial<Recipe>) => {
+    set({ isLoading: true, error: null });
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user?.user_metadata?.organizationId) {
@@ -164,26 +135,23 @@ export const useRecipeStore = create<RecipeStore>((set, get) => ({
           modified_by: user.id,
           updated_at: new Date().toISOString()
         })
-        .eq('id', id)
-        .eq('organization_id', user.user_metadata.organizationId);
+        .eq('id', id);
 
       if (error) throw error;
 
-      set(state => ({
-        recipes: state.recipes.map(recipe =>
-          recipe.id === id ? { ...recipe, ...updates } : recipe
-        )
-      }));
-
-      toast.success('Recipe updated successfully');
+      // Refresh recipes
+      await get().fetchRecipes();
     } catch (error) {
       console.error('Error updating recipe:', error);
-      toast.error('Failed to update recipe');
+      set({ error: (error as Error).message });
       throw error;
+    } finally {
+      set({ isLoading: false });
     }
   },
 
-  deleteRecipe: async (id) => {
+  updateRecipeStatus: async (id: string, status: 'draft' | 'review' | 'approved' | 'archived') => {
+    set({ isLoading: true, error: null });
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user?.user_metadata?.organizationId) {
@@ -192,21 +160,52 @@ export const useRecipeStore = create<RecipeStore>((set, get) => ({
 
       const { error } = await supabase
         .from('recipes')
-        .delete()
-        .eq('id', id)
-        .eq('organization_id', user.user_metadata.organizationId);
+        .update({ 
+          status,
+          modified_by: user.id,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', id);
 
       if (error) throw error;
 
+      // Update local state
       set(state => ({
-        recipes: state.recipes.filter(recipe => recipe.id !== id)
+        recipes: state.recipes.map(recipe =>
+          recipe.id === id ? { ...recipe, status } : recipe
+        )
       }));
+    } catch (error) {
+      console.error('Error updating recipe status:', error);
+      set({ error: (error as Error).message });
+      throw error;
+    } finally {
+      set({ isLoading: false });
+    }
+  },
 
-      toast.success('Recipe deleted successfully');
+  deleteRecipe: async (id: string) => {
+    set({ isLoading: true, error: null });
+    try {
+      const { error } = await supabase
+        .from('recipes')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      // Update store state
+      set(state => ({
+        recipes: state.recipes.filter(r => r.id !== id),
+        currentRecipe: state.currentRecipe?.id === id ? null : state.currentRecipe,
+        error: null
+      }));
     } catch (error) {
       console.error('Error deleting recipe:', error);
-      toast.error('Failed to delete recipe');
+      set({ error: (error as Error).message });
       throw error;
+    } finally {
+      set({ isLoading: false });
     }
   },
 
@@ -218,44 +217,12 @@ export const useRecipeStore = create<RecipeStore>((set, get) => ({
     const { recipes } = get();
     return recipes.filter(recipe => {
       const matchesType = recipe.type === type;
-      const matchesSearch = searchTerm ? (
-        recipe.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        recipe.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        recipe.station?.toLowerCase().includes(searchTerm.toLowerCase())
-      ) : true;
+      const matchesSearch = searchTerm
+        ? recipe.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          recipe.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          recipe.station?.toLowerCase().includes(searchTerm.toLowerCase())
+        : true;
       return matchesType && matchesSearch;
     });
   },
-
-  addRecipe: async (recipe) => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user?.user_metadata?.organizationId) {
-        throw new Error('No organization ID found');
-      }
-
-      const { data, error } = await supabase
-        .from('recipes')
-        .insert([{
-          ...recipe,
-          organization_id: user.user_metadata.organizationId,
-          created_by: user.id,
-          modified_by: user.id
-        }])
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      set(state => ({
-        recipes: [...state.recipes, data]
-      }));
-
-      toast.success('Recipe imported successfully');
-    } catch (error) {
-      console.error('Error importing recipe:', error);
-      toast.error('Failed to import recipe');
-      throw error;
-    }
-  }
 }));
