@@ -26,11 +26,8 @@ export const TrainingModule: React.FC<TrainingModuleProps> = ({ recipe, onChange
   };
 
   const addCertification = () => {
-    const cert = prompt('Enter required certification:');
-    if (!cert) return;
-
     updateTraining({
-      certificationRequired: [...(recipe.training.certificationRequired || []), cert]
+      certificationRequired: [...(recipe.training.certificationRequired || []), '']
     });
   };
 
@@ -40,11 +37,8 @@ export const TrainingModule: React.FC<TrainingModuleProps> = ({ recipe, onChange
   };
 
   const addCommonError = () => {
-    const error = prompt('Enter common error to prevent:');
-    if (!error) return;
-
     updateTraining({
-      commonErrors: [...(recipe.training.commonErrors || []), error]
+      commonErrors: [...(recipe.training.commonErrors || []), '']
     });
   };
 
@@ -54,11 +48,8 @@ export const TrainingModule: React.FC<TrainingModuleProps> = ({ recipe, onChange
   };
 
   const addKeyTechnique = () => {
-    const technique = prompt('Enter key technique:');
-    if (!technique) return;
-
     updateTraining({
-      keyTechniques: [...(recipe.training.keyTechniques || []), technique]
+      keyTechniques: [...(recipe.training.keyTechniques || []), '']
     });
   };
 
@@ -68,11 +59,8 @@ export const TrainingModule: React.FC<TrainingModuleProps> = ({ recipe, onChange
   };
 
   const addSafetyProtocol = () => {
-    const protocol = prompt('Enter safety protocol:');
-    if (!protocol) return;
-
     updateTraining({
-      safetyProtocols: [...(recipe.training.safetyProtocols || []), protocol]
+      safetyProtocols: [...(recipe.training.safetyProtocols || []), '']
     });
   };
 
@@ -82,11 +70,8 @@ export const TrainingModule: React.FC<TrainingModuleProps> = ({ recipe, onChange
   };
 
   const addQualityStandard = () => {
-    const standard = prompt('Enter quality standard:');
-    if (!standard) return;
-
     updateTraining({
-      qualityStandards: [...(recipe.training.qualityStandards || []), standard]
+      qualityStandards: [...(recipe.training.qualityStandards || []), '']
     });
   };
 
@@ -131,9 +116,20 @@ export const TrainingModule: React.FC<TrainingModuleProps> = ({ recipe, onChange
                   key={index}
                   className="flex items-center justify-between bg-gray-800/50 rounded-lg px-3 py-2"
                 >
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-1">
                     <Award className="w-4 h-4 text-amber-400" />
-                    <span className="text-sm text-gray-300">{cert}</span>
+                    <input
+                      type="text"
+                      value={cert}
+                      onChange={(e) => {
+                        const certs = [...(recipe.training.certificationRequired || [])];
+                        certs[index] = e.target.value;
+                        updateTraining({ certificationRequired: certs });
+                      }}
+                      className="bg-transparent border-none text-gray-300 focus:outline-none w-full"
+                      placeholder="Enter certification requirement..."
+                      autoFocus={!cert}
+                    />
                   </div>
                   <button
                     onClick={() => removeCertification(index)}
@@ -178,6 +174,7 @@ export const TrainingModule: React.FC<TrainingModuleProps> = ({ recipe, onChange
                   }}
                   className="input w-full"
                   placeholder="Describe common error and prevention..."
+                  autoFocus={!error}
                 />
               </div>
               <button
@@ -221,6 +218,7 @@ export const TrainingModule: React.FC<TrainingModuleProps> = ({ recipe, onChange
                   }}
                   className="input w-full"
                   placeholder="Describe key technique..."
+                  autoFocus={!technique}
                 />
               </div>
               <button
@@ -264,6 +262,7 @@ export const TrainingModule: React.FC<TrainingModuleProps> = ({ recipe, onChange
                   }}
                   className="input w-full"
                   placeholder="Describe safety protocol..."
+                  autoFocus={!protocol}
                 />
               </div>
               <button
@@ -307,6 +306,7 @@ export const TrainingModule: React.FC<TrainingModuleProps> = ({ recipe, onChange
                   }}
                   className="input w-full"
                   placeholder="Describe quality standard..."
+                  autoFocus={!standard}
                 />
               </div>
               <button
