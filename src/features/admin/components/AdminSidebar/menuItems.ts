@@ -12,7 +12,8 @@ import {
   Package,
   Settings,
   Box,
-  ChefHat
+  ChefHat,
+  CircleDollarSign,
 } from 'lucide-react';
 
 export const menuItems = (isDev: boolean) => {
@@ -51,10 +52,10 @@ export const menuItems = (isDev: boolean) => {
       id: 'data',
       label: 'DATA MANAGEMENT',
       items: [
-        { icon: Database, label: 'Master Ingredients', path: '/admin/excel-imports#ingredients' },
-        { icon: UtensilsCrossed, label: 'Prepared Items', path: '/admin/excel-imports#prepared' },
-        { icon: Package, label: 'Food Inventory', path: '/admin/excel-imports#inventory' },
-        { icon: Settings, label: 'Operations', path: '/admin/excel-imports#operations' },
+        { icon: Database, label: 'Master Ingredient List', path: '/admin/excel-imports#ingredients' },
+        { icon: CircleDollarSign, label: 'Vendor Invoices', path: '/admin/excel-imports#prepared' },
+        { icon: Package, label: 'Food Inventory Review', path: '/admin/excel-imports#inventory' },
+        { icon: Settings, label: 'Operation Variables', path: '/admin/excel-imports#operations' },
         { icon: Box, label: 'Food Relationships', path: '/admin/excel-imports#relationships' }
       ]
     },
