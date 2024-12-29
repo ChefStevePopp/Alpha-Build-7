@@ -10,7 +10,7 @@ export const SignIn: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
-  const signIn = useAuthStore(state => state.signIn);
+  const signIn = useAuthStore((state) => state.signIn);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,7 +30,7 @@ export const SignIn: React.FC = () => {
   return (
     <div className="card p-6">
       <h2 className="text-2xl font-bold text-white mb-6">Sign In</h2>
-      
+
       <form onSubmit={handleSubmit} className="space-y-4">
         {error && (
           <div className="bg-red-500/10 text-red-400 p-3 rounded-lg flex items-center gap-2">
