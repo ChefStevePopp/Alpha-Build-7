@@ -1,46 +1,42 @@
 import React from 'react';
-import { Package } from 'lucide-react';
-import type { Recipe } from '@/types/recipe';
-import { NameAndType } from './NameAndType';
-import { MisEnPlaceCategory } from './MisEnPlaceCategory';
-import { CostingModule } from './CostingModule';
+import { PrimaryInfo } from './PrimaryInfo';
+import { IngredientsInput } from './IngredientsInput';
+import { CostingSummary } from './CostingSummary';
+import type { Recipe } from '/src/stores/recipeStore.ts';
+import type { OperationsSettings } from '@/types/operations';
 
 interface BasicInformationProps {
   recipe: Recipe;
   onChange: (updates: Partial<Recipe>) => void;
+  settings: OperationsSettings;
 }
 
 export const BasicInformation: React.FC<BasicInformationProps> = ({
   recipe,
-  onChange
+  onChange,
+  settings,
 }) => {
   return (
-    <div className="space-y-8">
-      {/* Basic Information Header */}
-      <div className="flex items-center gap-3">
-        <div className="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center">
-          <Package className="w-4 h-4 text-blue-400" />
-        </div>
-        <h3 className="text-lg font-medium text-white">Recipe Information</h3>
+    <div className="space-y-8 relative">
+      {/* Primary Recipe Information */}
+      <div className="card p-6 relative z-10">
+        <PrimaryInfo recipe={recipe} onChange={onChange} settings={settings} />
       </div>
-      
-      {/* Name, Type and Description */}
-      <NameAndType 
-        recipe={recipe}
-        onChange={onChange}
-      />
 
-      {/* Costing Module */}
-      <CostingModule 
-        recipe={recipe}
-        onChange={onChange}
-      />
+      {/* Recipe Ingredients */}
+      <div className="card p-6 relative z-40">
+        <IngredientsInput recipe={recipe} onChange={onChange} />
+      </div>
 
-      {/* Mise en Place Category */}
-      <MisEnPlaceCategory 
-        recipe={recipe}
-        onChange={onChange}
-      />
+      {/* Recipe Costing */}
+      <div className="card p-6 relative z-20">
+        <CostingSummary
+          recipe={recipe}
+          onChange={onChange}
+          settings={settings}
+        />
+      </div>
     </div>
   );
 };
+export default BasicInformation;
