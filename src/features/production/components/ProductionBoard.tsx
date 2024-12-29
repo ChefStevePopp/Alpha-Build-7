@@ -37,4 +37,4 @@ const ProductionBoard = () => {
   );
 };
 
-export {ProductionBoard};
+export { ProductionBoard };
