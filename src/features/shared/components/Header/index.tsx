@@ -7,9 +7,14 @@ interface HeaderProps {
   className?: string;
 }
 
-export const Header: React.FC<HeaderProps> = ({ notifications = 0, className = '' }) => {
+export const Header: React.FC<HeaderProps> = ({
+  notifications = 0,
+  className = '',
+}) => {
   return (
-    <header className={`bg-gray-900/95 backdrop-blur-sm border-b border-gray-800 ${className}`}>
+    <header
+      className={`bg-gray-900/95 backdrop-blur-sm border-b border-gray-800 ${className}`}
+    >
       <div className="px-8 py-4">
         <div className="flex items-center justify-between">
           {/* Logo and Branding */}
@@ -21,7 +26,9 @@ export const Header: React.FC<HeaderProps> = ({ notifications = 0, className = '
             />
             <div>
               <h1 className="text-xl font-semibold text-white">KITCHEN AI</h1>
-              <p className="text-xs text-gray-400">Turning Your Passion into Profit</p>
+              <p className="text-xs text-gray-400">
+                Turning Your Passion into Profit
+              </p>
             </div>
           </div>
 
