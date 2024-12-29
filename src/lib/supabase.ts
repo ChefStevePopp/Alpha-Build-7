@@ -15,6 +15,6 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
     detectSessionInUrl: false,
     storage: window.localStorage,
     storageKey: 'kitchen-ai-auth',
-    flowType: 'implicit'
+    flowType: 'pkce'
   }
 });
